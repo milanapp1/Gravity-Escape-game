@@ -1,7 +1,7 @@
 # Gravity-Escape-game
 космическая аркада с гравитацией и доставкой грузов
 
-![Game Screenshot](![image](https://github.com/user-attachments/assets/cfff1bb1-b654-40eb-8b06-4ba681dd1a1d)
+![Скрин игры](![image](https://github.com/user-attachments/assets/cfff1bb1-b654-40eb-8b06-4ba681dd1a1d)
 ![image](https://github.com/user-attachments/assets/76aaf7cf-e6b3-48b1-a377-dbc54981525d)
 ) <!-- Здесь должна быть ссылка на скриншот игры -->
 ## Описание игры
