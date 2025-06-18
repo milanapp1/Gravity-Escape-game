@@ -5,12 +5,12 @@ import random
 
 pygame.init()
 
-#настройки экрана
+# настройки экрана
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Космический Курьер")
 
-#цвета
+# цвета
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
@@ -19,17 +19,25 @@ GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
 PURPLE = (128, 0, 128)
 
-#настройки игры
+# настройки игры
 FPS = 60
 clock = pygame.time.Clock()
 
-#шрифты
+# шрифты
 font_large = pygame.font.SysFont('Arial', 48)
 font_medium = pygame.font.SysFont('Arial', 36)
 font_small = pygame.font.SysFont('Arial', 24)
 
+# фоновая музыка
+try:
+    pygame.mixer.music.load('assets/sounds/background.mp3')
+    pygame.mixer.music.set_volume(0.5)  #громкость 50%
+    pygame.mixer.music.play(-1)  #бесконечное повторение
+except pygame.error as e:
+    print(f"Не удалось загрузить музыку: {e}")
 
-#класс кнопки для меню
+
+# класс кнопки для меню
 class Button:
     def __init__(self, x, y, width, height, text, color, hover_color):
         self.rect = pygame.Rect(x, y, width, height)
@@ -57,13 +65,12 @@ class Button:
         return False
 
 
-#класс корабля игрока
+# класс корабля игрока
 class Spaceship(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.Surface((30, 20), pygame.SRCALPHA)
-        pygame.draw.polygon(self.image, WHITE, [(0, 0), (30, 10), (0, 20)])
-        self.original_image = self.image.copy()
+        self.color = WHITE
+        self.create_image()
         self.rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
         self.speed = 0
         self.max_speed = 5
@@ -71,17 +78,24 @@ class Spaceship(pygame.sprite.Sprite):
         self.rotation = 0
         self.velocity = pygame.math.Vector2(0, 0)
         self.position = pygame.math.Vector2(self.rect.center)
-        self.has_cargo = False  # Флаг наличия груза
+        self.has_cargo = False
+
+    def create_image(self):
+        self.image = pygame.Surface((30, 20), pygame.SRCALPHA)
+        pygame.draw.polygon(self.image, self.color, [(0, 0), (30, 10), (0, 20)])
+        self.original_image = self.image.copy()
+
+    def set_color(self, color):
+        self.color = color
+        self.create_image()
 
     def update(self):
-        #вращение
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a]:
             self.rotation += 5
         if keys[pygame.K_d]:
             self.rotation -= 5
 
-        #ускорение
         if keys[pygame.K_w]:
             self.speed += self.acceleration
             if self.speed > self.max_speed:
@@ -91,20 +105,17 @@ class Spaceship(pygame.sprite.Sprite):
             if self.speed < 0:
                 self.speed = 0
 
-        #применение вращения
         self.image = pygame.transform.rotate(self.original_image, self.rotation)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-        #расчет направления движения
         angle_rad = math.radians(self.rotation)
         direction = pygame.math.Vector2(math.cos(angle_rad), -math.sin(angle_rad))
-
-        #обновление позиции
         self.velocity = direction * self.speed
         self.position += self.velocity
         self.rect.center = self.position
 
-        #проверка границ экрана
+        # проверка границ экрана
+
         if self.rect.left > WIDTH:
             self.rect.right = 0
             self.position.x = self.rect.centerx
@@ -119,7 +130,7 @@ class Spaceship(pygame.sprite.Sprite):
             self.position.y = self.rect.centery
 
 
-#класс планеты
+# класс планеты
 class Planet(pygame.sprite.Sprite):
     def __init__(self, x, y, radius, color, gravity_radius, gravity_force):
         super().__init__()
@@ -129,37 +140,38 @@ class Planet(pygame.sprite.Sprite):
         self.radius = radius
         self.gravity_radius = gravity_radius
         self.gravity_force = gravity_force
-        self.has_cargo = False  #для планеты с флагом
+        self.has_cargo = False  # для планеты с флагом
+        self.is_target = False  # планета — цель доставки?
 
     def apply_gravity(self, ship):
-        #расчет расстояния между кораблем и планетой
+        # расчет расстояния между кораблем и планетой
         distance_vec = pygame.math.Vector2(self.rect.center) - ship.position
         distance = distance_vec.length()
 
-        #если корабль в зоне гравитации
+        # если корабль в зоне гравитации
         if distance < self.gravity_radius:
-            #нормализованный вектор направления
+            # нормализованный вектор направления
             if distance > 0:
                 direction = distance_vec.normalize()
             else:
                 direction = pygame.math.Vector2(1, 0)
 
-            #расчет силы гравитации (обратно пропорционально расстоянию)
+            # расчет силы гравитации (обратно пропорционально расстоянию)
             force = self.gravity_force * (1 - distance / self.gravity_radius)
             ship.velocity += direction * force
 
 
-#класс черной дыры
+# класс черной дыры
 class BlackHole(Planet):
     def __init__(self, x, y):
         super().__init__(x, y, 20, BLACK, 200, 0.3)
-        self.critical_distance = 50  #критическое расстояние для бонуса
-        #анимация свечения
+        self.critical_distance = 50  # критическое расстояние для бонуса
+        # анимация свечения
         self.glow_size = 0
         self.glow_growing = True
 
     def update(self):
-        #анимация свечения
+        # анимация свечения
         if self.glow_growing:
             self.glow_size += 0.5
             if self.glow_size >= 10:
@@ -170,7 +182,7 @@ class BlackHole(Planet):
                 self.glow_growing = True
 
     def draw(self, surface):
-        #рисуем свечение
+        # рисуем свечение
         glow_surf = pygame.Surface((self.radius * 2 + self.glow_size * 2,
                                     self.radius * 2 + self.glow_size * 2), pygame.SRCALPHA)
         pygame.draw.circle(glow_surf, (100, 100, 255, 50),
@@ -178,21 +190,21 @@ class BlackHole(Planet):
                            self.radius + self.glow_size)
         surface.blit(glow_surf, (self.rect.x - self.glow_size, self.rect.y - self.glow_size))
 
-        #рисуем саму черную дыру
+        # рисуем саму черную дыру
         surface.blit(self.image, self.rect)
 
     def apply_gravity(self, ship):
         super().apply_gravity(ship)
-        #проверка на критическое расстояние для бонуса
+        # проверка на критическое расстояние для бонуса
         distance_vec = pygame.math.Vector2(self.rect.center) - ship.position
         distance = distance_vec.length()
 
         if distance < self.critical_distance and distance > self.radius:
-            #здесь будет логика начисления бонуса (+10 очков)
+            # здесь будет логика начисления бонуса (+10 очков)
             pass
 
 
-#класс груза
+# класс груза
 class Cargo(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -201,7 +213,7 @@ class Cargo(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x, y))
 
 
-#класс бустера
+# класс бустера
 class Booster(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -210,15 +222,15 @@ class Booster(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x, y))
 
 
-#игровой класс
+# игровой класс
 class Game:
     def __init__(self):
-        self.state = "menu"  #menu, game, game_over
+        self.state = "menu"  # menu, game, game_over
         self.create_menu()
         self.reset()
 
     def create_menu(self):
-        #создаем кнопки меню
+        # создаем кнопки меню
         button_width, button_height = 200, 50
         center_x = WIDTH // 2 - button_width // 2
 
@@ -228,39 +240,39 @@ class Game:
                                   "Выход", RED, PURPLE)
 
     def reset(self):
-        #группы спрайтов
+        # группы спрайтов
         self.all_sprites = pygame.sprite.Group()
         self.planets = pygame.sprite.Group()
         self.blackholes = pygame.sprite.Group()
         self.cargos = pygame.sprite.Group()
         self.boosters = pygame.sprite.Group()
 
-        #создание корабля
+        # создание корабля
         self.ship = Spaceship()
         self.all_sprites.add(self.ship)
 
-        #игровые параметры
+        # игровые параметры
         self.lives = 3
         self.score = 0
         self.level = 1
         self.game_over = False
         self.cargo_delivered = False
 
-        #создание уровня
+        # создание уровня
         self.create_level()
 
     def create_level(self):
-        #очистка предыдущих объектов
+        # очистка предыдущих объектов
         self.planets.empty()
         self.blackholes.empty()
         self.cargos.empty()
         self.boosters.empty()
 
-        #количество объектов зависит от уровня
+        # количество объектов зависит от уровня
         num_planets = 2 + self.level
         num_blackholes = 1 + self.level // 2
 
-        #создание планет
+        # создание планет
         for _ in range(num_planets):
             x = random.randint(50, WIDTH - 50)
             y = random.randint(50, HEIGHT - 50)
@@ -270,15 +282,16 @@ class Game:
             self.planets.add(planet)
             self.all_sprites.add(planet)
 
-        #одна планета с флагом (цель доставки)
+        # одна планета с флагом (цель доставки)
         if self.planets:
             self.target_planet = random.choice(self.planets.sprites())
             self.target_planet.has_cargo = True
-            #добавляем флаг на планету
+            # добавляем флаг на планету
             pygame.draw.circle(self.target_planet.image, RED,
                                (self.target_planet.radius, self.target_planet.radius // 2), 5)
+            self.target_planet.is_target = True  # пометили как целевую
 
-        #создание черных дыр
+        # создание черных дыр
         for _ in range(num_blackholes):
             x = random.randint(50, WIDTH - 50)
             y = random.randint(50, HEIGHT - 50)
@@ -286,11 +299,11 @@ class Game:
             self.blackholes.add(blackhole)
             self.all_sprites.add(blackhole)
 
-        #создание груза
+        # создание груза
         while True:
             x = random.randint(100, WIDTH - 100)
             y = random.randint(100, HEIGHT - 100)
-            #проверяем, чтобы груз не появился слишком близко к целевой планете
+            # проверяем, чтобы груз не появился слишком близко к целевой планете
             if self.planets and pygame.math.Vector2(x, y).distance_to(
                     pygame.math.Vector2(self.target_planet.rect.center)) > 150:
                 break
@@ -299,70 +312,92 @@ class Game:
         self.cargos.add(cargo)
         self.all_sprites.add(cargo)
 
-        #создание бустеров (1 на уровень)
+        # создание бустеров (1 на уровень)
         booster = Booster(random.randint(50, WIDTH - 50), random.randint(50, HEIGHT - 50))
         self.boosters.add(booster)
         self.all_sprites.add(booster)
+        self.all_sprites.add(self.ship)  # убедимся, что корабль снова в группе
 
     def update(self):
         if self.state != "game":
             return
 
-        #обновление всех спрайтов
+        # обновление всех спрайтов
         self.all_sprites.update()
 
-        #применение гравитации
+        # применение гравитации
         for planet in self.planets:
             planet.apply_gravity(self.ship)
 
         for blackhole in self.blackholes:
             blackhole.apply_gravity(self.ship)
 
-        #проверка столкновений с планетами и черными дырами
+        # проверка столкновений с планетами и черными дырами
         planet_collisions = pygame.sprite.spritecollide(self.ship, self.planets, False)
         blackhole_collisions = pygame.sprite.spritecollide(self.ship, self.blackholes, False)
 
-        if planet_collisions or blackhole_collisions:
+        crashed = False
+
+        # Столкновение с планетами
+        for planet in planet_collisions:
+            if not (planet.is_target and self.ship.has_cargo):
+                crashed = True
+
+        # Столкновение с черными дырами (всегда снимает жизнь)
+        if blackhole_collisions:
+            crashed = True
+
+        if crashed:
             self.lives -= 1
             if self.lives <= 0:
                 self.state = "game_over"
             else:
-                #респавн корабля после столкновения
+                # респавн
                 self.ship.position = pygame.math.Vector2(WIDTH // 2, HEIGHT // 2)
                 self.ship.velocity = pygame.math.Vector2(0, 0)
                 self.ship.speed = 0
-                self.ship.has_cargo = False  #теряем груз при столкновении
+                self.ship.has_cargo = False
 
-        #проверка сбора груза
+        # проверка сбора груза
         if not self.ship.has_cargo:
             cargo_collision = pygame.sprite.spritecollide(self.ship, self.cargos, True)
             if cargo_collision:
                 self.ship.has_cargo = True
-                #меняем цвет корабля, когда он несет груз
-                pygame.draw.polygon(self.ship.image, YELLOW, [(0, 0), (30, 10), (0, 20)])
-                self.ship.original_image = self.ship.image.copy()
+                self.ship.set_color(YELLOW)
 
-        #проверка доставки груза на планету с флагом
+        # проверка доставки груза на планету с флагом
         if self.ship.has_cargo and self.target_planet:
             if pygame.sprite.collide_rect(self.ship, self.target_planet):
                 self.score += 3
                 self.ship.has_cargo = False
-                #возвращаем обычный цвет корабля
-                pygame.draw.polygon(self.ship.image, WHITE, [(0, 0), (30, 10), (0, 20)])
-                self.ship.original_image = self.ship.image.copy()
 
-                #на след уровень
+                # возвращаем обычный цвет корабля
+                self.ship.set_color(WHITE)
+                self.ship.has_cargo = False
+
+                # удаляем все объекты, кроме корабля
+                for sprite in self.all_sprites:
+                    if sprite != self.ship:
+                        sprite.kill()
+
+                self.planets.empty()
+                self.blackholes.empty()
+                self.cargos.empty()
+                self.boosters.empty()
+                self.target_planet = None
+
+                # переход на следующий уровень
                 self.level += 1
                 if self.level > 5:
                     self.state = "game_over"
                 else:
                     self.create_level()
 
-        #проверка сбора бустера
+        # проверка сбора бустера
         booster_collision = pygame.sprite.spritecollide(self.ship, self.boosters, True)
         if booster_collision:
             self.score += 5
-            #увелич макс скорость на 1
+            # увелич макс скорость на 1
             self.ship.max_speed += 1
 
     def draw(self):
@@ -385,27 +420,27 @@ class Game:
             self.draw_game_over()
 
     def draw_menu(self):
-        #заголовок игры
+        # заголовок игры
         title = font_large.render("КОСМИЧЕСКИЙ КУРЬЕР", True, WHITE)
         screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 100))
 
-        #инструкция
+        # инструкция
         instruction = font_small.render("Доставьте груз на планету с красным флагом", True, WHITE)
         screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, 180))
 
-        #кнопки
+        # кнопки
         self.start_button.draw(screen)
         self.quit_button.draw(screen)
 
     def draw_game(self):
-        #рисуем все спрайты
+        # рисуем все спрайты
         for sprite in self.all_sprites:
             if isinstance(sprite, BlackHole):
                 sprite.draw(screen)
             else:
                 screen.blit(sprite.image, sprite.rect)
 
-        #интерфейс
+        # интерфейс
         lives_text = font_medium.render(f'Жизни: {self.lives}', True, WHITE)
         score_text = font_medium.render(f'Очки: {self.score}', True, WHITE)
         level_text = font_medium.render(f'Уровень: {self.level}', True, WHITE)
@@ -417,12 +452,12 @@ class Game:
         screen.blit(cargo_text, (10, 130))
 
     def draw_game_over(self):
-        #затемнение экрана
+        # затемнение экрана
         overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         screen.blit(overlay, (0, 0))
 
-        #текст Game Over
+        # текст Game Over
         if self.level > 5:
             game_over_text = font_large.render('ПОБЕДА!', True, GREEN)
         else:
@@ -472,7 +507,7 @@ class Game:
         return True
 
 
-#основной игровой цикл
+# основной игровой цикл
 def main():
     game = Game()
     running = True
