@@ -1,10 +1,9 @@
 # Gravity-Escape-game
 космическая аркада с гравитацией и доставкой грузов
 
-[Скрины игры]((https://github.com/user-attachments/assets/906e36af-3f6b-4255-bf05-a7ac2021d2a0)
-![image](https://github.com/user-attachments/assets/5cf2d792-d77a-4f3b-baba-50e9017eaf31)
-)
-
+![Game Screenshot](![image](https://github.com/user-attachments/assets/cfff1bb1-b654-40eb-8b06-4ba681dd1a1d)
+![image](https://github.com/user-attachments/assets/76aaf7cf-e6b3-48b1-a377-dbc54981525d)
+) <!-- Здесь должна быть ссылка на скриншот игры -->
 ## Описание игры
 "Космический Курьер" - это 2D-аркада, в которой вы управляете космическим кораблем, доставляющим грузы между планетами. Ваша задача - собрать груз и доставить его на целевую планету, обозначенную красным флагом, избегая опасных столкновений с другими объектами.
 
